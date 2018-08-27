@@ -7,9 +7,9 @@ using System.Security.Cryptography;
 namespace Shared
 {
     [Serializable]
-    public class WorldDescriptioin
+    public class WorldDescription
     {
-        public Size WorldSize { get; set; }
+        public int WorldSize { get; set; }
 
         public IEnumerable<Unit> Units{
             get;

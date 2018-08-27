@@ -26,7 +26,7 @@ namespace UnityClientServer
 
         public void StartListen()
         {
-            Task.Run(() =>
+            Task.Factory.StartNew(() =>
             {
                 ListenWorker(_tokenSource.Token);
             }, _tokenSource.Token);
@@ -34,10 +34,18 @@ namespace UnityClientServer
 
         private async void ListenWorker(CancellationToken cancellationToken)
         {
-            while (!cancellationToken.IsCancellationRequested)
+            try
             {
-                Socket socket = await _tcpListener.AcceptSocketAsync();
-                OnSocketConnected(socket);
+                _tcpListener.Start();
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    Socket socket = await _tcpListener.AcceptSocketAsync();
+                    OnSocketConnected(socket);
+                }
+            }
+            catch (SocketException e)
+            {
+                Console.WriteLine(e);
             }
         }
 

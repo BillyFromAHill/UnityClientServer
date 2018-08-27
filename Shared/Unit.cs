@@ -17,7 +17,7 @@ namespace Shared
 
         public PointF Position { get; set; }
 
-        public Point Destination { get; set; }
+        public Point? Destination { get; set; }
 
         public double SpeedCellsInSecond { get; set; }
     }

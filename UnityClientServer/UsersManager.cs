@@ -7,11 +7,13 @@ using System.Threading.Tasks;
 
 namespace UnityClientServer
 {
-    public class NetworkManager
+    public class UsersManager
     {
         private ConnectionManager _connectionManager;
 
-        public NetworkManager(string address, Int16 port)
+        private List<UserManager> _managers = new List<UserManager>();
+
+        public UsersManager(string address, Int16 port)
         {
             _connectionManager = new ConnectionManager(address, port);
         }
@@ -19,11 +21,12 @@ namespace UnityClientServer
         public void Start()
         {
             _connectionManager.SocketConnected += ConnectionManager_SocketConnected;
+            _connectionManager.StartListen();
         }
 
         private void ConnectionManager_SocketConnected(object sender, Socket e)
         {
-            
+            _managers.Add(new UserManager(e));
         }
     }
 }

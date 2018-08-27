@@ -10,7 +10,7 @@ namespace UnityClientServer
     {
         static void Main(string[] args)
         {
-
+            new Application().Start();
 
         }
     }

@@ -9,13 +9,20 @@ namespace Shared
 {
     public class Packet
     {
-        private PacketTypes _type;
-        private object _data;
+        [Serializable]
+        private class PacketState
+        {
+            public PacketTypes Type { get; set; }
+
+            public object Data { get; set; }
+        }
+
+        private PacketState state = new PacketState();
 
         public Packet(PacketTypes type, object data)
         {
-            _type = type;
-            _data = data;
+            state.Type = type;
+            state.Data = data;
         }
 
         public Packet(Stream stream)
@@ -23,15 +30,14 @@ namespace Shared
             var formatter = new BinaryFormatter();
 
             // Не безопасно.
-            _type = (PacketTypes)formatter.Deserialize(stream);
-            _data = formatter.Deserialize(stream);
+            state = (PacketState)formatter.Deserialize(stream);
         }
 
         public PacketTypes Type
         {
             get
             {
-                return _type;
+                return state.Type;
             }
         }
 
@@ -39,7 +45,7 @@ namespace Shared
         {
             get
             {
-                return _data;
+                return state.Data;
             }
         }
 
@@ -47,8 +53,7 @@ namespace Shared
         {
             var formatter = new BinaryFormatter();
 
-            formatter.Serialize(stream, _type);
-            formatter.Serialize(stream, _data);
+            formatter.Serialize(stream, state);
         }
     }
 }
