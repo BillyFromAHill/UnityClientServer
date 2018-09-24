@@ -29,7 +29,7 @@ namespace UnityClientServer
             Task.Factory.StartNew(() =>
             {
                 ListenWorker(_tokenSource.Token);
-            }, _tokenSource.Token);
+            }, TaskCreationOptions.LongRunning);
         }
 
         private async void ListenWorker(CancellationToken cancellationToken)

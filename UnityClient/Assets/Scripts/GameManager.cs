@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using Assets.Scripts;
 using Shared;
 using UnityEngine;
 
@@ -16,8 +18,10 @@ public class GameManager : MonoBehaviour
 
     private static List<GameObject> _fieldCells = new List<GameObject>();
 
-    bool isSelecting = false;
-    Vector3 mousePosition1;
+    private static Dictionary<Guid, UnitView> _unitSprites = new Dictionary<Guid, UnitView>();
+
+    private bool _isSelecting = false;
+    private Vector3 _mousePosition;
 
 
 	void Start () {
@@ -36,19 +40,55 @@ public class GameManager : MonoBehaviour
 		
         /// Здесь лучше бы использовать переопределенный Equals.
 	    if (_currentDesctiption != _networkManager.LastDescription)
-	    {
+        { 
+            // Здесь будет обновлено положение юнитов. По-хорошему, 
+            // на клиенте стоило бы соорудить интерполяцию и свое "локальное"
+            // перемещение.
 	        UpdateWorldState(_networkManager.LastDescription);
 	    }
 
         if (Input.GetMouseButtonDown(0))
         {
-            isSelecting = true;
-            mousePosition1 = Input.mousePosition;
+            _isSelecting = true;
+            _mousePosition = Input.mousePosition;
         }
+
 
         if (Input.GetMouseButtonUp(0))
         {
-            isSelecting = false;
+            var selectionRect = GetScreenRect(_mousePosition, Input.mousePosition);
+
+            foreach (var unit in _unitSprites)
+            {
+                Bounds bounds = unit.Value.Bounds;
+
+                Vector3 screenPoint = Camera.main.WorldToScreenPoint(
+                    new Vector3(
+                        bounds.min.x,
+                        bounds.min.y,
+                        1));
+
+                Vector3 screenPoint2 = Camera.main.WorldToScreenPoint(
+                    new Vector3(
+                        bounds.max.x,
+                        bounds.max.y,
+                        1));
+
+                Rect unitScreenRect = GetScreenRect(
+                    screenPoint,
+                    screenPoint2);
+
+                if (unitScreenRect.Overlaps(selectionRect) || unitScreenRect.Contains(selectionRect.center) || selectionRect.Contains(unitScreenRect.center))
+                {
+                    unit.Value.IsSelected = true;
+                }
+                else
+                {
+                    unit.Value.IsSelected = false;
+                }
+            }
+
+            _isSelecting = false;
         }
     }
 
@@ -72,10 +112,10 @@ public class GameManager : MonoBehaviour
 
     void OnGUI()
     {
-        if (isSelecting)
+        if (_isSelecting)
         {
             // Create a rect from both mouse positions
-            var rect = GetScreenRect(mousePosition1, Input.mousePosition);
+            var rect = GetScreenRect(_mousePosition, Input.mousePosition);
             DrawScreenRect(rect, new Color(0.8f, 0.8f, 0.95f, 0.25f));
             DrawScreenRectBorder(rect, 2, new Color(0.8f, 0.8f, 0.95f));
         }
@@ -112,10 +152,22 @@ public class GameManager : MonoBehaviour
         return Rect.MinMaxRect(topLeft.x, topLeft.y, bottomRight.x, bottomRight.y);
     }
 
+    private void SendSelectedToPoint(Point point)
+    {
+        var args =new MoveArguments() { Position = point, Units = _unitSprites.Where(us => us.Value.IsSelected).Select(us => us.Key).ToArray() };
+
+        _networkManager.SendCommand(args);
+    }
+
 
     private void UpdateWorldState(WorldDescription newDescription)
     {
         Camera camera = Camera.main;
+        int newSize = newDescription.WorldSize;
+        float minSize = Math.Min(camera.rect.width, camera.rect.height);
+
+        float cellZPosition = 30;
+        float unitZPosition = 29;
 
         if (_currentDesctiption == null || newDescription.WorldSize != _currentDesctiption.WorldSize)
         {
@@ -126,10 +178,6 @@ public class GameManager : MonoBehaviour
 
             _fieldCells.Clear();
 
-            int newSize = newDescription.WorldSize;
-            float minSize = Math.Min(camera.rect.width, camera.rect.height);
-
-
             for (int i = 1; i <= newSize; i++)
             {
                 for (int j = 1; j <= newSize; j++)
@@ -137,22 +185,65 @@ public class GameManager : MonoBehaviour
 
                     Sprite fieldSprite = Resources.Load<Sprite>("Sprites/FieldCell");
 
-                    GameObject obj = new GameObject();
+                    var obj = new GameObject();
 
-                    SpriteRenderer rend = obj.AddComponent(typeof(SpriteRenderer)) as SpriteRenderer;
-
+                    var rend = obj.AddComponent<SpriteRenderer>() ;
                     rend.sprite = fieldSprite;
+
+                    obj.AddComponent<CircleCollider2D>();
+
+                    var cellView = obj.AddComponent<CellView>();
+                    cellView.Point = new Point(i - 1, j - 1);
+                    cellView.Clicked += Cell_Clicked;
 
                     obj.transform.localScale = new Vector3(
                         0.1f * fieldSprite.rect.width * ( minSize / (newSize + 1)),
                         0.1f * fieldSprite.rect.height * ( minSize / (newSize + 1)),
                         1);
 
-                    obj.transform.position = camera.ViewportToWorldPoint ( new Vector3(i / (float)(newSize + 1) , j / (float)(newSize + 1), 30));
+                    obj.transform.position = camera.ViewportToWorldPoint(new Vector3(i / (float)(newSize + 1) , j / (float)(newSize + 1), cellZPosition));
+
+                    _fieldCells.Add(obj);
                 }
             }
         }
 
-            _currentDesctiption = newDescription;
+        _currentDesctiption = newDescription;
+
+        foreach (var unit in _currentDesctiption.Units)
+        {
+            if (!_unitSprites.ContainsKey(unit.UnitId))
+            {
+                var view = new UnitView();
+                view.IsSelected = false;
+
+                view.SetScale(new Vector3(
+                    0.9f * 2 * (minSize / (newSize + 1)),
+                    0.9f * 2 * (minSize / (newSize + 1)),
+                    1));
+
+                _unitSprites.Add(unit.UnitId, view);
+            }
+
+                _unitSprites[unit.UnitId].SetPosition(camera.ViewportToWorldPoint(
+                    new Vector3((unit.Position.X + 1) / (float)(newSize + 1),
+                        (unit.Position.Y + 1) / (float)(newSize + 1), unitZPosition)));
+
+        }
+
+        // Здесь возможно удаление исчезнувших юнитов, но в
+        // нашем случае это не нужно.
+    }
+
+    private void Cell_Clicked(object sender, EventArgs e)
+    {
+        var view = sender as CellView;
+
+        if (view == null)
+        {
+            return;
+        }
+
+        SendSelectedToPoint(view.Point);
     }
 }

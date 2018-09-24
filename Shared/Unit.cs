@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 
 namespace Shared
@@ -10,15 +9,17 @@ namespace Shared
     {
         public Unit()
         {
-            SpeedCellsInSecond = 1.0;
+            SpeedCellsInSecond = 1.0f;
         }
 
         public Guid UnitId { get; set; }
 
-        public PointF Position { get; set; }
+        // Этому хорошо бы быть целочисленым и раздедиться на позицию
+        // и "текущую" позицию.
+        public Point Position { get; set; }
 
         public Point? Destination { get; set; }
 
-        public double SpeedCellsInSecond { get; set; }
+        public float SpeedCellsInSecond { get; set; }
     }
 }

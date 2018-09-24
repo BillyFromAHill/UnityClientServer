@@ -19,8 +19,7 @@ public class NetworkManager
 
     private string _address = "127.0.0.1";
 
-    private int _port = 25148;
-
+    private int _port = 11500;
     private int _reconnectionTime = 3000;
 
     private Queue<Packet> _packets = new Queue<Packet>();
@@ -39,7 +38,7 @@ public class NetworkManager
 
     public void RequestUpdateWorldState()
     {
-        var updateWorldPacket = new Packet(PacketTypes.WorldStatus, null);
+        var updateWorldPacket = new Packet(PacketTypes.WorldStatus, new object());
 
         lock (_packets)
         {
@@ -47,6 +46,15 @@ public class NetworkManager
         }
     }
 
+    public void SendCommand(MoveArguments args)
+    {
+        var commandPacket = new Packet(PacketTypes.ClientCommand, args);
+
+        lock (_packets)
+        {
+            _packets.Enqueue(commandPacket);
+        }
+    }
 
     private void NetworkWorker()
     {
@@ -90,10 +98,9 @@ public class NetworkManager
 
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Debug.logger.LogException(e);
                 Thread.Sleep(_reconnectionTime);
             }
-
         }
     }
 

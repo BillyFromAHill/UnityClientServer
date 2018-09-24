@@ -3,7 +3,7 @@
   <Profiles />
   <Settings>
     <Setting Name="Port" Type="System.Int16" Scope="Application">
-      <Value Profile="(Default)">25148</Value>
+      <Value Profile="(Default)">11500</Value>
     </Setting>
     <Setting Name="Address" Type="System.String" Scope="Application">
       <Value Profile="(Default)">127.0.0.1</Value>

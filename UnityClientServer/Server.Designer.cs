@@ -25,7 +25,7 @@ namespace UnityClientServer {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("25148")]
+        [global::System.Configuration.DefaultSettingValueAttribute("11500")]
         public short Port {
             get {
                 return ((short)(this["Port"]));

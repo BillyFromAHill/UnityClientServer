@@ -4,6 +4,7 @@ using System.Linq;
 
 namespace Shared
 {
+    [Serializable]
     public enum PacketTypes
     {
         ClientCommand,

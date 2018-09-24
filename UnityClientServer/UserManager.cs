@@ -21,14 +21,13 @@ namespace UnityClientServer
         public UserManager(Socket socket)
         {
             _socket = socket;
-            _userWorld = new World();
+            _userWorld = new World(_cancellationTokenSource.Token);
 
-            Task.Factory.StartNew(() => UserInteractor(_cancellationTokenSource.Token), _cancellationTokenSource.Token);
+            Task.Factory.StartNew(() => UserInteractor(_cancellationTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         private async void UserInteractor(CancellationToken token)
         {
-
             using (NetworkStream stream = new NetworkStream(_socket))
             {
                 using (MemoryStream memoryStream = new MemoryStream())
@@ -38,20 +37,32 @@ namespace UnityClientServer
                     {
                         try
                         {
-                            while(stream.DataAvailable)
-                            {
-                                byte[] buffer = new byte[1024];
-                                int read = await stream.ReadAsync(buffer, 0, buffer.Length);
+                            byte[] sizeBytes = new byte[sizeof(long)];
 
-                                memoryStream.Write(buffer, 0, read);
+                            await stream.ReadAsync(sizeBytes, 0, sizeBytes.Length);
+                            long size = BitConverter.ToInt64(sizeBytes, 0);
+
+                            long readSize = 0;
+
+                            memoryStream.Write(sizeBytes, 0, sizeBytes.Length);
+                            while (readSize < size)
+                            {
+                                long readBufferSize = 1024;
+                                if (size - readSize < readBufferSize)
+                                {
+                                    readBufferSize = size - readSize;
+                                }
+
+                                var readBuffer = new byte[readBufferSize];
+                                int currentRead = await stream.ReadAsync(readBuffer, 0, readBuffer.Length, token);
+
+                                memoryStream.Write(readBuffer, 0, currentRead);
+
+                                readSize += currentRead;
                             }
 
-                            while(memoryStream.Position < memoryStream.Length - 1)
-                            {
-                                var packet = new Packet(memoryStream);
-
-                                ProcessPacket(packet, stream);
-                            }
+                            memoryStream.Position = 0;
+                            ProcessPacket(new Packet(memoryStream), stream);
 
                             memoryStream.Position = 0;
                         }
@@ -60,11 +71,11 @@ namespace UnityClientServer
                             Console.WriteLine(e);
                         }
                     }
-
                 }
             }
-        }
 
+            _cancellationTokenSource.Cancel(false);
+        }
 
         private void ProcessPacket(Packet packet, Stream socketStream)
         {
@@ -77,6 +88,19 @@ namespace UnityClientServer
                     var returnPacket = new Packet(PacketTypes.WorldStatus, currentDescription);
 
                     returnPacket.CopyTo(socketStream);
+                    break;
+                }
+
+                case PacketTypes.ClientCommand:
+                {
+                    MoveArguments args = packet.Data as MoveArguments;
+
+                    if (args == null)
+                    {
+                        return;
+                    }
+
+                    _userWorld.SendTo(args.Units, args.Position);
                     break;
                 }
             }
