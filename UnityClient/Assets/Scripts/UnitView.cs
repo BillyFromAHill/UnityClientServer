@@ -3,33 +3,58 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace Assets.Scripts
 {
     class UnitView
     {
         private GameObject _unitObject;
+        private GameObject _parentObject;
+        private UnitState _state;
 
-        private GameObject _selectionObject;
+        private Animator _animation;
 
         public UnitView()
         {
             Sprite unitSprite = Resources.Load<Sprite>("Sprites/UnitSprite");
 
+            _parentObject = new GameObject();
             _unitObject = new GameObject();
 
-            var rend = _unitObject.AddComponent(typeof(SpriteRenderer)) as SpriteRenderer;
+            _unitObject.transform.parent = _parentObject.transform;
 
+            var rend = _unitObject.AddComponent(typeof(SpriteRenderer)) as SpriteRenderer;
             rend.sprite = unitSprite;
 
+            _animation = _unitObject.AddComponent<Animator>();
+            _animation.runtimeAnimatorController = (RuntimeAnimatorController)Resources.Load("Animations/UnitAnimationController");
 
-            Sprite selectionSprite = Resources.Load<Sprite>("Sprites/SelectionSprite");
+            SetState(UnitState.Stopped);
+        }
 
-            _selectionObject = new GameObject();
+        public void SetState(UnitState state)
+        {
+            switch (state)
+            {
+                case UnitState.Moving:
+                {
+                    if (_animation.GetBool("Stop"))
+                    {
+                        _animation.SetBool("Stop", false);
+                    }
+                        break;
+                }
+                case UnitState.Stopped:
+                {
+                    if (!_animation.GetBool("Stop"))
+                    {
+                        _animation.SetBool("Stop", true);
+                    }
 
-            var rend2 = _selectionObject.AddComponent(typeof(SpriteRenderer)) as SpriteRenderer;
-            rend2.sprite = selectionSprite;
-
+                    break;
+                }
+            }
         }
 
         public Bounds Bounds
@@ -37,40 +62,36 @@ namespace Assets.Scripts
             get
             {
                 var bounds = _unitObject.GetComponent<SpriteRenderer>().bounds;
-                bounds.Expand(_unitObject.transform.localScale);
+                bounds.Expand(_parentObject.transform.localScale);
                 return bounds;
             }
         }
 
         public void SetPosition(Vector3 position)
         {
-            _unitObject.transform.position = position;
-            _selectionObject.transform.position = position + Vector3.forward;
+            _parentObject.transform.position = position;
         }
 
         public void SetScale(Vector3 scale)
         {
-            _unitObject.transform.localScale = new Vector3(
-                0.9f * scale.x,
-                0.9f * scale.y,
-                1);
-
-            _selectionObject.transform.localScale = new Vector3(
+            _parentObject.transform.localScale = new Vector3(
                 scale.x,
                 scale.y,
                 1);
         }
 
+
+
         public bool IsSelected
         {
             get
             {
-                return _selectionObject.activeSelf;
+                return _unitObject.GetComponent<SpriteRenderer>().color == Color.green;
             }
 
             set
             {
-                 _selectionObject.SetActive(value);
+                _unitObject.GetComponent<SpriteRenderer>().color = value? Color.green : Color.gray;
             }
         }
     }

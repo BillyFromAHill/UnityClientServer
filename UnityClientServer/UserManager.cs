@@ -22,7 +22,6 @@ namespace UnityClientServer
         {
             _socket = socket;
             _userWorld = new World(_cancellationTokenSource.Token);
-
             Task.Factory.StartNew(() => UserInteractor(_cancellationTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
@@ -39,7 +38,13 @@ namespace UnityClientServer
                         {
                             byte[] sizeBytes = new byte[sizeof(long)];
 
-                            await stream.ReadAsync(sizeBytes, 0, sizeBytes.Length);
+                            // Не помешала бы проверка, что сокет еще живой из другого потока.
+                            int readBytesCount = await stream.ReadAsync(sizeBytes, 0, sizeBytes.Length, token);
+                            if (readBytesCount == 0)
+                            {
+                                break;
+                            }
+
                             long size = BitConverter.ToInt64(sizeBytes, 0);
 
                             long readSize = 0;

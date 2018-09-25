@@ -34,15 +34,24 @@ namespace UnityClientServer
 
             _worldSize = rnd.Next(MinWorldSize, MaxWorldSize);
 
-            int unitCount = 5;//rnd.Next(1, MaxUnitCount);
+            int unitCount = rnd.Next(1, MaxUnitCount);
 
             _units = new Unit[unitCount];
             for (int i = 0; i < unitCount; i++)
             {
                 var unit = new Unit();
-                _units[i] = unit;
+
                 unit.UnitId = Guid.NewGuid();
-                unit.Position = new Point(rnd.Next(_worldSize - 1), rnd.Next(_worldSize - 1));
+
+                Point position = new Point(rnd.Next(_worldSize - 1), rnd.Next(_worldSize - 1));
+
+                while(_units.Any(u => u != null && u.Position.Equals(position)))
+                {
+                    position = new Point(rnd.Next(_worldSize - 1), rnd.Next(_worldSize - 1));
+                }
+
+                unit.Position = position;
+                _units[i] = unit;
             }
 
             _tickingTask = Task.Factory.StartNew(
