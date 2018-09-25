@@ -225,10 +225,18 @@ public class GameManager : MonoBehaviour
                 _unitSprites.Add(unit.UnitId, view);
             }
 
-                _unitSprites[unit.UnitId].SetPosition(camera.ViewportToWorldPoint(
-                    new Vector3((unit.Position.X + 1) / (float)(newSize + 1),
-                        (unit.Position.Y + 1) / (float)(newSize + 1), unitZPosition)));
+            _unitSprites[unit.UnitId].SetPosition(camera.ViewportToWorldPoint(
+                new Vector3((unit.Position.X + 1) / (float)(newSize + 1),
+                    (unit.Position.Y + 1) / (float)(newSize + 1), unitZPosition)));
 
+            if (unit.Destination.HasValue)
+            {
+                _unitSprites[unit.UnitId].SetState(UnitState.Moving);
+            }
+            else
+            {
+                _unitSprites[unit.UnitId].SetState(UnitState.Stopped);
+            }
         }
 
         // Здесь возможно удаление исчезнувших юнитов, но в

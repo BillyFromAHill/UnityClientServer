@@ -36,7 +36,6 @@ namespace Assets.Scripts
             }
         }
 
-
         protected virtual void OnClicked()
         {
             var clicked = Clicked;

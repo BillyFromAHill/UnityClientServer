@@ -4,23 +4,21 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
+using Assets.Scripts;
 using Shared;
 using UnityEngine;
 
 public class NetworkManager
 {
-    private object syncLock = new object();
-
     private bool _working;
 
     private Thread _networkThread;
 
     private TcpClient _tcpClient;
 
-    private string _address = "127.0.0.1";
+    private string _networkConfigFilename = "network.cfg";
 
-    private int _port = 11500;
-    private int _reconnectionTime = 3000;
+    private NetworkConfiguration _networkConfig;
 
     private Queue<Packet> _packets = new Queue<Packet>();
 
@@ -29,6 +27,8 @@ public class NetworkManager
 	// Use this for initialization
 	public void Start ()
 	{
+        _networkConfig = new NetworkConfiguration(_networkConfigFilename);
+
 	    _working = true;
         _networkThread = new Thread(NetworkWorker);
         _networkThread.Start();
@@ -62,11 +62,11 @@ public class NetworkManager
         {
             try
             {
-                _tcpClient = new TcpClient(_address, _port);
+                _tcpClient = new TcpClient(_networkConfig.Address, _networkConfig.Port);
 
                 if (!_tcpClient.Connected)
                 {
-                    _tcpClient.Connect(_address, _port);
+                    _tcpClient.Connect(_networkConfig.Address, _networkConfig.Port);
                 }
 
                 using (NetworkStream networkStream = _tcpClient.GetStream())
@@ -99,7 +99,7 @@ public class NetworkManager
             catch (Exception e)
             {
                 Debug.logger.LogException(e);
-                Thread.Sleep(_reconnectionTime);
+                Thread.Sleep(_networkConfig.ReconnectionTime);
             }
         }
     }

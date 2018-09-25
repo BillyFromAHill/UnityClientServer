@@ -84,7 +84,9 @@
   <ItemGroup>
     <Compile Include="Assets\Scripts\CellView.cs" />
     <Compile Include="Assets\Scripts\GameManager.cs" />
+    <Compile Include="Assets\Scripts\NetworkConfiguration.cs" />
     <Compile Include="Assets\Scripts\NetworkManager.cs" />
+    <Compile Include="Assets\Scripts\UnitState.cs" />
     <Compile Include="Assets\Scripts\UnitView.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
